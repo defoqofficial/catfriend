@@ -1,0 +1,16 @@
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Temporary and Scratch files
+scratch_data.txt
+scratch_pixel_data.txt
+scratch_platforms.txt
+svg.txt
+scratch_highres.svg
+test.js
+test_winter.js
+
+# OS generated files
+.DS_Store
+Thumbs.db

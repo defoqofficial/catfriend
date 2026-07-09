@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Ears -->
+  <polygon points="40,130 20,20 110,80" fill="#F49E4C" />
+  <polygon points="216,130 236,20 146,80" fill="#F49E4C" />
+  <polygon points="45,120 35,45 95,85" fill="#FADFD2" />
+  <polygon points="211,120 221,45 161,85" fill="#FADFD2" />
+  
+  <!-- Head -->
+  <ellipse cx="128" cy="140" rx="90" ry="75" fill="#F49E4C" />
+  
+  <!-- Cheeks -->
+  <ellipse cx="95" cy="165" rx="35" ry="25" fill="#FFFFFF" />
+  <ellipse cx="161" cy="165" rx="35" ry="25" fill="#FFFFFF" />
+  
+  <!-- Eyes -->
+  <circle cx="85" cy="130" r="12" fill="#2D3142" />
+  <circle cx="171" cy="130" r="12" fill="#2D3142" />
+  <circle cx="88" cy="126" r="4" fill="#FFFFFF" />
+  <circle cx="174" cy="126" r="4" fill="#FFFFFF" />
+  
+  <!-- Nose -->
+  <polygon points="120,150 136,150 128,160" fill="#E57A82" />
+  
+  <!-- Mouth -->
+  <path d="M 128 160 Q 128 175 110 170" fill="none" stroke="#2D3142" stroke-width="3" stroke-linecap="round"/>
+  <path d="M 128 160 Q 128 175 146 170" fill="none" stroke="#2D3142" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Whiskers -->
+  <line x1="15" y1="145" x2="65" y2="155" stroke="#2D3142" stroke-width="3" stroke-linecap="round"/>
+  <line x1="10" y1="165" x2="60" y2="165" stroke="#2D3142" stroke-width="3" stroke-linecap="round"/>
+  <line x1="20" y1="185" x2="70" y2="175" stroke="#2D3142" stroke-width="3" stroke-linecap="round"/>
+  
+  <line x1="241" y1="145" x2="191" y2="155" stroke="#2D3142" stroke-width="3" stroke-linecap="round"/>
+  <line x1="246" y1="165" x2="196" y2="165" stroke="#2D3142" stroke-width="3" stroke-linecap="round"/>
+  <line x1="236" y1="185" x2="186" y2="175" stroke="#2D3142" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Paws peeking over edge -->
+  <ellipse cx="80" cy="230" rx="25" ry="30" fill="#F49E4C" />
+  <ellipse cx="176" cy="230" rx="25" ry="30" fill="#F49E4C" />
+  
+  <!-- Paw lines -->
+  <line x1="70" y1="210" x2="70" y2="230" stroke="#CD7B32" stroke-width="3" stroke-linecap="round"/>
+  <line x1="90" y1="210" x2="90" y2="230" stroke="#CD7B32" stroke-width="3" stroke-linecap="round"/>
+  <line x1="166" y1="210" x2="166" y2="230" stroke="#CD7B32" stroke-width="3" stroke-linecap="round"/>
+  <line x1="186" y1="210" x2="186" y2="230" stroke="#CD7B32" stroke-width="3" stroke-linecap="round"/>
+</svg>
