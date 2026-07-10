@@ -561,3 +561,53 @@ body.hide-shelves .shelf-visual {
   pointer-events: none;
   z-index: 10;
 }
+
+/* --- BIRD CLASSES --- */
+.bird-container {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  pointer-events: none;
+  z-index: 15;
+  transform-origin: center center;
+}
+
+.bird-sprite {
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  transform: scaleX(var(--flip-x, 1));
+}
+
+.bird-fly {
+  background-image: url('assets/birds/BirdFly.png');
+  background-size: 512px 64px;
+  animation: bird-fly-anim 0.6s steps(8) infinite;
+}
+
+@keyframes bird-fly-anim {
+  from { background-position: 0px 0px; }
+  to { background-position: -512px 0px; }
+}
+
+.bird-walk {
+  background-image: url('assets/birds/BirdWalk.png');
+  background-size: 384px 64px;
+  animation: bird-walk-anim 0.6s steps(6) infinite;
+}
+
+@keyframes bird-walk-anim {
+  from { background-position: 0px 0px; }
+  to { background-position: -384px 0px; }
+}
+
+.bird-sit {
+  background-image: url('assets/birds/BirdSit.png');
+  background-size: 384px 64px;
+  animation: bird-sit-anim 0.8s steps(6) infinite;
+}
+
+@keyframes bird-sit-anim {
+  from { background-position: 0px 0px; }
+  to { background-position: -384px 0px; }
+}

@@ -97,6 +97,8 @@ let nextCatSpawnTime = 0;
 let wasInBreak = false;
 
 const cats = [];
+const birds = [];
+let nextBirdSpawnTime = 0;
 let placedGifts = [];
 
 let bugX = 500;
@@ -325,6 +327,7 @@ class Cat {
     
     this.isVandalizing = false;
     this.vandalTarget = null;
+    this.huntingBirdTarget = null;
     
     this.isFetchingGift = false;
     this.giftType = null;
@@ -481,6 +484,17 @@ class Cat {
   
   update(platforms) {
     if (!this.isVisible) return;
+    
+    // Check for nearby birds
+    const scale = screenW / 3440;
+    if (birds.length > 0 && this.state !== 'HUNTING_BIRD' && this.state !== 'JUMPING' && this.state !== 'FALLING') {
+        const targetBird = birds.find(b => Math.hypot(b.x - this.x, b.y - this.y) < 1000 * scale && b.state !== 'ESCAPING' && b.state !== 'FLYING');
+        if (targetBird && Math.random() < 0.1) {
+            this.state = 'HUNTING_BIRD';
+            this.huntingBirdTarget = targetBird;
+            this.setCatClass('pounce');
+        }
+    }
     
     // Break Mode Overarching Meta-State Logic
     if (this.isTrueBreakMode) {
@@ -1439,33 +1453,73 @@ class Cat {
        }
     }
     else if (['SITTING', 'SLEEPING', 'FORCED_SLEEP', 'FORCED_SIT'].includes(this.state)) {
-      const fallingGift = placedGifts.find(g => g.isFalling && g.wasThrown && g.y < screenH - 64 && g.y > 0);
-      if (fallingGift && Math.random() < 0.2) {
-          this.vandalTarget = fallingGift;
-          this.state = 'FETCH_THROWN_GIFT';
-          this.setCatClass('pounce');
-          this.stateWaitFrames = 0;
-          this.speak("Mine!");
-          return;
-      }
-      
-      this.stateWaitFrames++;
-      
-      if (this.isAutonomous) {
-         this.autonomousStateTimeout--;
-         if (this.autonomousStateTimeout <= 0) {
-             this.state = 'WAKING_UP';
+       const fallingGift = placedGifts.find(g => g.isFalling && g.wasThrown && g.y < screenH - 64 && g.y > 0);
+       if (fallingGift && Math.random() < 0.2) {
+           this.vandalTarget = fallingGift;
+           this.state = 'FETCH_THROWN_GIFT';
+           this.setCatClass('pounce');
+           this.stateWaitFrames = 0;
+           this.speak("Mine!");
+           return;
+       }
+       
+       this.stateWaitFrames++;
+       
+       if (this.isAutonomous) {
+          this.autonomousStateTimeout--;
+          if (this.autonomousStateTimeout <= 0) {
+              this.state = 'WAKING_UP';
+              this.setCatClass('pounce');
+              this.sprite.style.backgroundPosition = `-256px 0px`;
+              this.stateWaitFrames = 0;
+          }
+       } else {
+         const effectiveOffset = this.getEffectiveTargetOffset();
+         if (Math.abs((mouseX + effectiveOffset) - (this.x + 64)) > 150) {
+           this.state = 'WAKING_UP';
+           this.setCatClass('pounce');
+           this.sprite.style.backgroundPosition = `-256px 0px`;
+           this.stateWaitFrames = 0;
+         }
+       }
+     }
+     else if (this.state === 'HUNTING_BIRD') {
+         if (!this.huntingBirdTarget || birds.indexOf(this.huntingBirdTarget) === -1 || this.huntingBirdTarget.state === 'ESCAPING') {
+             this.state = 'FALLING';
+             this.huntingBirdTarget = null;
              this.setCatClass('pounce');
-             this.sprite.style.backgroundPosition = `-256px 0px`;
-             this.stateWaitFrames = 0;
+             return;
          }
-      } else {
-         if (this.state === 'SITTING' && mouseIdleFrames > 600) {
-             this.state = 'SLEEPING';
-             this.setCatClass('sleep');
+         
+         const targetX = this.huntingBirdTarget.x;
+         const cx = this.x + 64;
+         const cy = this.y + 128;
+         
+         const currentSplit = platforms.find(p => p.hwnd === this.currentPlatform?.hwnd && cx >= p.x && cx <= p.x + p.w);
+         if (currentSplit && this.huntingBirdTarget.currentPlatform) {
+             if (this.huntingBirdTarget.currentPlatform.hwnd === currentSplit.hwnd) {
+                 // Same platform, sprint at the bird!
+                 const dx = targetX - cx;
+                 const dir = Math.sign(dx) || 1;
+                 if (Math.abs(dx) > 10) {
+                     this.walkVx += (8 * dir - this.walkVx) * 0.1;
+                     this.x += this.walkVx;
+                     this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
+                     this.setCatClass('running');
+                     
+                     const speedRatio = Math.max(0.3, Math.abs(this.walkVx) / 8);
+                     this.sprite.style.animationDuration = `${0.5 / speedRatio}s`;
+                 }
+             } else {
+                 // Different platform, jump to the bird's platform!
+                 this.startJump(this.huntingBirdTarget.currentPlatform, cx, cy, targetX);
+             }
+         } else if (!currentSplit) {
+             this.state = 'FALLING';
+             this.setCatClass('pounce');
+             this.currentPlatform = null;
          }
-      }
-    }
+     }
     else if (this.state === 'WAKING_UP') {
       if (this.platformMoveTimeout > 0) {
         this.platformMoveTimeout--;
@@ -1836,6 +1890,164 @@ class Cat {
     // Apply position
     this.container.style.left = `${this.x}px`;
     this.container.style.top = `${this.y}px`;
+  }
+}
+
+class Bird {
+  constructor() {
+    this.id = 'bird_' + Date.now() + Math.floor(Math.random() * 1000);
+    this.x = Math.random() < 0.5 ? -100 : screenW + 100;
+    this.y = 100 + Math.random() * (screenH / 2);
+    this.vx = this.x < 0 ? 2 + Math.random() * 3 : -2 - Math.random() * 3;
+    this.vy = 0;
+    
+    this.state = 'FLYING';
+    this.stateWaitFrames = 0;
+    this.currentPlatform = null;
+    this.targetX = null;
+    this.targetY = null;
+    
+    this.container = document.createElement('div');
+    this.container.className = 'bird-container';
+    
+    this.sprite = document.createElement('div');
+    this.sprite.className = 'bird-sprite bird-fly';
+    
+    this.container.appendChild(this.sprite);
+    document.body.appendChild(this.container);
+    
+    this.setFlip(this.vx);
+  }
+  
+  setFlip(vx) {
+      if (vx > 0) this.sprite.style.setProperty('--flip-x', 1);
+      else if (vx < 0) this.sprite.style.setProperty('--flip-x', -1);
+  }
+  
+  setAnim(className) {
+      this.sprite.className = 'bird-sprite ' + className;
+  }
+  
+  update(platforms) {
+    if (!this.isVisible) return;
+    
+    // Check for nearby birds
+    const scale = screenW / 3440;
+    if (birds.length > 0 && this.state !== 'HUNTING_BIRD' && this.state !== 'JUMPING' && this.state !== 'FALLING') {
+        const targetBird = birds.find(b => Math.hypot(b.x - this.x, b.y - this.y) < 1000 * scale && b.state !== 'ESCAPING' && b.state !== 'FLYING');
+        if (targetBird && Math.random() < 0.1) {
+            this.state = 'HUNTING_BIRD';
+            this.huntingBirdTarget = targetBird;
+            this.setCatClass('pounce');
+        }
+    }
+    
+    if (this.state === 'FALLING') {
+          this.x += this.vx;
+          this.y += Math.sin(this.stateWaitFrames * 0.05) * 1;
+          
+          if (this.x < -200 || this.x > screenW + 200) {
+              this.destroy();
+              return;
+          }
+          
+          // Randomly decide to land if high enough and over a valid platform
+          if (this.stateWaitFrames > 120 && Math.random() < 0.01) {
+              const validPlatforms = platforms.filter(p => p.hwnd !== -1 && !String(p.hwnd).startsWith('line-') && p.w > 100);
+              
+              // Filter safe platforms (no cat within 600px scaled)
+              const scale = screenW / 3440;
+              const safeDist = 600 * scale;
+              const safePlatforms = validPlatforms.filter(p => {
+                  const px = p.x + p.w / 2;
+                  const allCats = [...cats, ...longBreakCats];
+                  return !allCats.some(c => Math.hypot(px - c.x, p.y - c.y) < safeDist);
+              });
+              
+              if (safePlatforms.length > 0) {
+                  this.currentPlatform = safePlatforms[Math.floor(Math.random() * safePlatforms.length)];
+                  this.targetX = this.currentPlatform.x + 30 + Math.random() * (this.currentPlatform.w - 60);
+                  this.targetY = this.currentPlatform.y - 64;
+                  this.state = 'LANDING';
+              }
+          }
+      } 
+      else if (this.state === 'LANDING') {
+          const dx = this.targetX - this.x;
+          const dy = this.targetY - this.y;
+          this.setFlip(dx);
+          
+          this.vx = dx * 0.05;
+          this.vy = dy * 0.05;
+          
+          this.x += this.vx;
+          this.y += this.vy;
+          
+          if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
+              this.state = 'SITTING';
+              this.setAnim('bird-sit');
+              this.stateWaitFrames = 0;
+              this.vx = 0;
+              this.vy = 0;
+          }
+      }
+      else if (this.state === 'SITTING') {
+          if (this.stateWaitFrames > 120 && Math.random() < 0.02) {
+              this.state = 'WALKING';
+              this.setAnim('bird-walk');
+              this.targetX = this.currentPlatform.x + 30 + Math.random() * (this.currentPlatform.w - 60);
+              this.setFlip(this.targetX - this.x);
+          }
+      }
+      else if (this.state === 'WALKING') {
+          const dx = this.targetX - this.x;
+          this.setFlip(dx);
+          const dir = Math.sign(dx);
+          
+          if (Math.abs(dx) > 2) {
+              this.x += dir * 2;
+          } else {
+              this.state = 'SITTING';
+              this.setAnim('bird-sit');
+              this.stateWaitFrames = 0;
+          }
+      }
+      else if (this.state === 'ESCAPING') {
+          this.x += this.vx;
+          this.y += this.vy;
+          
+          if (this.x < -200 || this.x > screenW + 200 || this.y < -200) {
+              this.destroy();
+              return;
+          }
+      }
+      
+      // Check for danger (cats nearby)
+      if (this.state !== 'FLYING' && this.state !== 'ESCAPING') {
+          const scale = screenW / 3440;
+          const dangerDist = 400 * scale; // Fly away if they get closer than this
+          const allCats = [...cats, ...longBreakCats];
+          const dangerCat = allCats.find(c => Math.hypot(c.x - this.x, c.y - this.y) < dangerDist);
+          
+          if (dangerCat) {
+              this.state = 'ESCAPING';
+              this.setAnim('bird-fly');
+              this.vx = this.x > dangerCat.x ? 6 : -6;
+              this.vy = -4; // Fly up and away
+              this.setFlip(this.vx);
+          }
+      }
+      
+      this.container.style.left = `${this.x}px`;
+      this.container.style.top = `${this.y}px`;
+  }
+  
+  destroy() {
+      if (this.container.parentNode) {
+          this.container.parentNode.removeChild(this.container);
+      }
+      const index = birds.indexOf(this);
+      if (index > -1) birds.splice(index, 1);
   }
 }
 
@@ -2324,6 +2536,11 @@ function update() {
               
               longBreakCats.push(newCat);
           }
+          
+          if (now > nextBirdSpawnTime && birds.length < 2) {
+              nextBirdSpawnTime = now + 10000 + Math.random() * 10000;
+              birds.push(new Bird());
+          }
       }
   } else {
       wasInBreak = false;
@@ -2417,6 +2634,7 @@ function update() {
   const platforms = getPlatforms();
   cats.forEach(cat => cat.update(platforms));
   longBreakCats.forEach(cat => cat.update(platforms));
+  birds.forEach(bird => bird.update(platforms));
   requestAnimationFrame(update);
 }
 requestAnimationFrame(update);
