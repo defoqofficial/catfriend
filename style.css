@@ -60,15 +60,14 @@ body, html {
 
 @keyframes playSpriteBound {
   0% { background-position: 0px 0; }
-  11.11% { background-position: -384px 0; } /* frame 4 */
-  22.22% { background-position: -512px 0; } /* frame 5 */
-  33.33% { background-position: -640px 0; } /* frame 6 */
-  44.44% { background-position: -768px 0; } /* frame 7 */
-  55.55% { background-position: -896px 0; } /* frame 8 */
-  66.66% { background-position: -1024px 0; } /* frame 9 */
-  77.77% { background-position: -1152px 0; } /* frame 10 */
-  88.88% { background-position: -1536px 0; } /* frame 13 */
-  100% { background-position: -1536px 0; }
+  12.5% { background-position: -384px 0; } /* frame 4 */
+  25% { background-position: -512px 0; } /* frame 5 */
+  37.5% { background-position: -640px 0; } /* frame 6 */
+  50% { background-position: -768px 0; } /* frame 7 */
+  62.5% { background-position: -896px 0; } /* frame 8 */
+  75% { background-position: -1024px 0; } /* frame 9 */
+  87.5% { background-position: -1152px 0; } /* frame 10 */
+  100% { background-position: -1152px 0; }
 }
 
 @keyframes playSprite9 {
@@ -93,7 +92,7 @@ body, html {
 .cat-container.bound .cat-sprite {
   background-image: url('cat_animation/PNG/JumpCattttt.png');
   background-size: 1664px 128px;
-  animation: playSpriteBound 0.45s step-end infinite;
+  animation: playSpriteBound 0.4s step-end infinite;
   margin-top: 14px;
 }
 
