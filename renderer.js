@@ -1173,12 +1173,32 @@ class Cat {
         
         if (this.stateWaitFrames > 60) {
           const distToMouse = Math.hypot(mouseX - cx, mouseY - cy);
-          if (distToMouse < 100) {
+          if (!this.isAutonomous && distToMouse < 100) {
              this.state = 'ON_PLATFORM';
              this.setCatClass('sit');
              if (cx <= this.currentPlatform.x + 5) this.x += 10;
              else if (cx >= this.currentPlatform.x + this.currentPlatform.w - 5) this.x -= 10;
              return;
+          }
+          
+          if (this.isAutonomous) {
+              const validPlatforms = platforms.filter(p => {
+                  if (p.hwnd === this.currentPlatform.hwnd || p.hwnd === -1 || String(p.hwnd).startsWith('line-')) return false;
+                  const px = p.x + p.w / 2;
+                  return Math.hypot(px - cx, p.y - cy) < 600; // Limit jumps to 600px radius
+              });
+              if (validPlatforms.length > 0 && Math.random() < 0.7) {
+                  const best = validPlatforms[Math.floor(Math.random() * validPlatforms.length)];
+                  const targetX = best.x + 30 + Math.random() * (best.w - 60);
+                  this.startJump(best, cx, cy, targetX);
+              } else {
+                  this.state = 'ON_PLATFORM';
+                  this.setCatClass('idle');
+                  if (cx <= this.currentPlatform.x + 5) this.x += 10;
+                  else if (cx >= this.currentPlatform.x + this.currentPlatform.w - 5) this.x -= 10;
+                  this.autonomousStateTimeout = 60 + Math.random() * 120;
+              }
+              return;
           }
           
           let best = null;
