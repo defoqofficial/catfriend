@@ -337,6 +337,7 @@ class Cat {
     this.platformMoveTimeout = 0;
     this.pounceVx = 0;
     this.pounceVy = 0;
+    this.walkVx = 0;
     this.currentPlatform = null;
     
     // Create DOM
@@ -554,8 +555,9 @@ class Cat {
           }
         } else {
           this.state = 'FALLING';
-          this.pounceVy = 0;
-          this.setCatClass('pounce');
+      this.pounceVy = -15; // Small hop off
+      this.walkVx = 0;
+      this.setCatClass('pounce');
           this.currentPlatform = null;
           this.lastTrackedHwnd = null;
         }
@@ -1153,6 +1155,7 @@ class Cat {
         if (!currentSplit) {
            this.state = 'FALLING';
            this.pounceVy = 0;
+           this.walkVx = 0;
            this.setCatClass('pounce');
            this.currentPlatform = null;
            return;
@@ -1197,6 +1200,7 @@ class Cat {
             else this.x += 2;
             this.state = 'FALLING';
             this.pounceVy = 0;
+            this.walkVx = 0;
             this.setCatClass('pounce');
             this.stateWaitFrames = 0;
           }
@@ -1272,7 +1276,8 @@ class Cat {
         const actualDx = mouseX - cx;
         
         const distToMouse = Math.hypot(mouseX - cx, mouseY - cy);
-        if (distToMouse < 100) {
+        const mouseRadius = 300 * (screenW / 3440);
+        if (distToMouse < mouseRadius) {
             dx = 0;
         }
         
@@ -1285,19 +1290,42 @@ class Cat {
         
         // Only start chasing if the target is a reasonable distance away
         if (Math.abs(dx) > 30) {
-          this.x += dir * 8;
-          this.sprite.style.setProperty('--flip-x', dir);
+          let targetSpeed = 8;
+          if (distToMouse < mouseRadius + 300) {
+              targetSpeed = Math.max(2, 8 * ((distToMouse - mouseRadius) / 300));
+          }
+          
+          const desiredVx = targetSpeed * dir;
+          this.walkVx += (desiredVx - this.walkVx) * 0.1; // Smooth acceleration
+          
+          this.x += this.walkVx;
+          this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
           this.setCatClass('running');
+          
+          const speedRatio = Math.max(0.3, Math.abs(this.walkVx) / 8);
+          this.sprite.style.animationDuration = `${0.5 / speedRatio}s`;
         } else {
-          this.sprite.style.setProperty('--flip-x', dir);
-          if (mouseIdleFrames > 600) {
-            this.state = 'SLEEPING';
-            this.setCatClass('sleep');
-          } else if (mouseIdleFrames > 300) {
-            this.state = 'SITTING';
-            this.setCatClass('sit');
+          this.walkVx += (0 - this.walkVx) * 0.2; // Smooth deceleration
+          this.x += this.walkVx;
+          
+          if (Math.abs(this.walkVx) < 0.5) {
+              this.walkVx = 0;
+              this.sprite.style.animationDuration = '0.5s';
+              this.sprite.style.setProperty('--flip-x', Math.sign(actualDx) || 1);
+              
+              if (mouseIdleFrames > 600) {
+                this.state = 'SLEEPING';
+                this.setCatClass('sleep');
+              } else if (mouseIdleFrames > 300) {
+                this.state = 'SITTING';
+                this.setCatClass('sit');
+              } else {
+                this.setCatClass('idle');
+              }
           } else {
-            this.setCatClass('idle');
+              this.setCatClass('running');
+              const speedRatio = Math.max(0.3, Math.abs(this.walkVx) / 8);
+              this.sprite.style.animationDuration = `${0.5 / speedRatio}s`;
           }
         }
         
@@ -1367,13 +1395,27 @@ class Cat {
        const dir = Math.sign(dx) || 1;
        
        if (Math.abs(dx) > 10) {
-           this.x += dir * 4;
-           this.sprite.style.setProperty('--flip-x', dir);
+           const desiredVx = 4 * dir;
+           this.walkVx += (desiredVx - this.walkVx) * 0.1;
+           this.x += this.walkVx;
+           this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
            this.setCatClass('running');
+           
+           const speedRatio = Math.max(0.3, Math.abs(this.walkVx) / 4);
+           this.sprite.style.animationDuration = `${0.6 / speedRatio}s`;
        } else {
-           this.state = 'ON_PLATFORM';
-           this.setCatClass('idle');
-           this.autonomousStateTimeout = 60 + Math.random() * 120;
+           this.walkVx += (0 - this.walkVx) * 0.2;
+           this.x += this.walkVx;
+           
+           if (Math.abs(this.walkVx) < 0.5) {
+               this.walkVx = 0;
+               this.sprite.style.animationDuration = '0.8s';
+               this.state = 'ON_PLATFORM';
+               this.setCatClass('idle');
+               this.autonomousStateTimeout = 60 + Math.random() * 120;
+           } else {
+               this.setCatClass('running');
+           }
        }
     }
     else if (['SITTING', 'SLEEPING', 'FORCED_SLEEP', 'FORCED_SIT'].includes(this.state)) {
