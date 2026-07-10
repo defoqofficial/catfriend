@@ -2007,29 +2007,47 @@ class Bird {
               this.state = 'SITTING';
               this.setAnim('bird-sit');
               this.stateWaitFrames = 0;
+              this.platformTime = 0;
               this.vx = 0;
               this.vy = 0;
           }
       }
       else if (this.state === 'SITTING') {
-          if (this.stateWaitFrames > 120 && Math.random() < 0.02) {
+          this.platformTime = (this.platformTime || 0) + 1;
+          if (this.platformTime > 600) { // Fly away after ~10 seconds
+              this.state = 'ESCAPING';
+              this.setAnim('bird-fly');
+              this.vx = Math.random() < 0.5 ? 6 : -6;
+              this.vy = -4;
+              this.setFlip(this.vx);
+          } else if (this.stateWaitFrames > 120 && Math.random() < 0.02) {
               this.state = 'WALKING';
               this.setAnim('bird-walk');
               this.targetX = this.currentPlatform.x + 30 + Math.random() * (this.currentPlatform.w - 60);
+              if (isNaN(this.targetX)) this.targetX = this.x;
               this.setFlip(this.targetX - this.x);
           }
       }
       else if (this.state === 'WALKING') {
-          const dx = this.targetX - this.x;
-          this.setFlip(dx);
-          const dir = Math.sign(dx);
-          
-          if (Math.abs(dx) > 2) {
-              this.x += dir * 2;
+          this.platformTime = (this.platformTime || 0) + 1;
+          if (this.platformTime > 600) {
+              this.state = 'ESCAPING';
+              this.setAnim('bird-fly');
+              this.vx = Math.random() < 0.5 ? 6 : -6;
+              this.vy = -4;
+              this.setFlip(this.vx);
           } else {
-              this.state = 'SITTING';
-              this.setAnim('bird-sit');
-              this.stateWaitFrames = 0;
+              const dx = this.targetX - this.x;
+              this.setFlip(dx);
+              const dir = Math.sign(dx);
+              
+              if (Math.abs(dx) > 2) {
+                  this.x += dir * 2;
+              } else {
+                  this.state = 'SITTING';
+                  this.setAnim('bird-sit');
+                  this.stateWaitFrames = 0;
+              }
           }
       }
       else if (this.state === 'ESCAPING') {
@@ -2047,7 +2065,14 @@ class Bird {
           const scale = screenW / 3440;
           const dangerDist = 400 * scale; // Fly away if they get closer than this
           const allCats = [...cats, ...longBreakCats];
-          const dangerCat = allCats.find(c => Math.hypot(c.x - this.x, c.y - this.y) < dangerDist);
+          
+          // Also flee if cat is directly underneath but very far down, if it's hunting this bird
+          const dangerCat = allCats.find(c => {
+              const dist = Math.hypot(c.x - this.x, c.y - this.y);
+              if (dist < dangerDist) return true;
+              if (c.state === 'HUNTING_BIRD' && c.huntingBirdTarget === this && Math.abs(c.x - this.x) < 200) return true;
+              return false;
+          });
           
           if (dangerCat) {
               this.state = 'ESCAPING';
