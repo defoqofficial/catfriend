@@ -1169,6 +1169,15 @@ class Cat {
         }
         
         if (this.stateWaitFrames > 60) {
+          const distToMouse = Math.hypot(mouseX - cx, mouseY - cy);
+          if (distToMouse < 100) {
+             this.state = 'ON_PLATFORM';
+             this.setCatClass('sit');
+             if (cx <= this.currentPlatform.x + 5) this.x += 10;
+             else if (cx >= this.currentPlatform.x + this.currentPlatform.w - 5) this.x -= 10;
+             return;
+          }
+          
           let best = null;
           let bestDist = Infinity;
           for (let p of platforms) {
@@ -1257,6 +1266,11 @@ class Cat {
         const effectiveOffset = this.getEffectiveTargetOffset();
         let dx = (mouseX + effectiveOffset) - cx;
         const actualDx = mouseX - cx;
+        
+        const distToMouse = Math.hypot(mouseX - cx, mouseY - cy);
+        if (distToMouse < 100) {
+            dx = 0;
+        }
         
         // Prevent the cat from running away from the cursor when you try to click it
         if (Math.sign(dx) !== Math.sign(actualDx) && Math.abs(actualDx) <= Math.abs(effectiveOffset) + 10) {
