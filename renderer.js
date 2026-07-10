@@ -1243,7 +1243,11 @@ class Cat {
                   this.setCatClass('sleep');
                   this.autonomousStateTimeout = 300 + Math.random() * 500;
                } else if (rand < 0.6) {
-                   const validPlatforms = platforms.filter(p => p.hwnd !== this.currentPlatform.hwnd && p.hwnd !== -1 && !String(p.hwnd).startsWith('line-'));
+                   const validPlatforms = platforms.filter(p => {
+                       if (p.hwnd === this.currentPlatform.hwnd || p.hwnd === -1 || String(p.hwnd).startsWith('line-')) return false;
+                       const px = p.x + p.w / 2;
+                       return Math.hypot(px - cx, p.y - cy) < 800; // Limit jumps to 800px radius
+                   });
                    if (validPlatforms.length > 0) {
                        const targetPlatform = validPlatforms[Math.floor(Math.random() * validPlatforms.length)];
                        const targetX = targetPlatform.x + 30 + Math.random() * (targetPlatform.w - 60);
@@ -2212,13 +2216,9 @@ function update() {
                   const distLeft = targetX;
                   const distRight = screenW - targetX;
                   
-                  const minDist = Math.min(distTop, distBottom, distLeft, distRight);
+                  const minDist = Math.min(distBottom, distLeft, distRight);
                   
-                  if (minDist === distTop) {
-                      newCat.x = targetX - 64;
-                      newCat.y = -200;
-                      newCat.state = 'FALLING';
-                  } else if (minDist === distBottom) {
+                  if (minDist === distBottom) {
                       const offset = Math.random() < 0.5 ? -250 : 250;
                       newCat.x = targetX - 64 + offset;
                       newCat.y = screenH + 100;
