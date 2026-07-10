@@ -2004,19 +2004,26 @@ class Bird {
                   this.state = 'LANDING';
               }
           }
-      } 
       else if (this.state === 'LANDING') {
           const dx = this.targetX - this.x;
           const dy = this.targetY - this.y;
-          this.setFlip(dx);
+          this.setFlip(this.vx); // Face movement direction, not just raw distance
           
-          this.vx = dx * 0.05;
-          this.vy = dy * 0.05;
+          const dist = Math.max(1, Math.hypot(dx, dy));
+          
+          // Desired speed slows down as we approach the target
+          const desiredSpeed = Math.min(8, dist * 0.1);
+          const desiredVx = (dx / dist) * desiredSpeed;
+          const desiredVy = (dy / dist) * desiredSpeed;
+          
+          // Smoothly steer towards the desired velocity
+          this.vx += (desiredVx - this.vx) * 0.1;
+          this.vy += (desiredVy - this.vy) * 0.1;
           
           this.x += this.vx;
           this.y += this.vy;
           
-          if (Math.abs(dx) < 5 && Math.abs(dy) < 5) {
+          if (dist < 5) {
               this.state = 'SITTING';
               this.setAnim('bird-sit');
               this.stateWaitFrames = 0;
