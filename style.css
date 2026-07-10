@@ -59,15 +59,15 @@ body, html {
 }
 
 @keyframes playSpriteBound {
-  0% { background-position: 0px 0; }
-  12.5% { background-position: -384px 0; } /* frame 4 */
-  25% { background-position: -512px 0; } /* frame 5 */
-  37.5% { background-position: -640px 0; } /* frame 6 */
-  50% { background-position: -768px 0; } /* frame 7 */
-  62.5% { background-position: -896px 0; } /* frame 8 */
-  75% { background-position: -1024px 0; } /* frame 9 */
-  87.5% { background-position: -1152px 0; } /* frame 10 */
-  100% { background-position: -1152px 0; }
+  0% { background-position: 0px 0; transform: translateY(0px) scaleX(var(--flip-x, 1)); }
+  12.5% { background-position: -384px 0; transform: translateY(5px) scaleX(var(--flip-x, 1)); }
+  25% { background-position: -512px 0; transform: translateY(10px) scaleX(var(--flip-x, 1)); }
+  37.5% { background-position: -640px 0; transform: translateY(15px) scaleX(var(--flip-x, 1)); }
+  50% { background-position: -768px 0; transform: translateY(18px) scaleX(var(--flip-x, 1)); }
+  62.5% { background-position: -896px 0; transform: translateY(15px) scaleX(var(--flip-x, 1)); }
+  75% { background-position: -1024px 0; transform: translateY(10px) scaleX(var(--flip-x, 1)); }
+  87.5% { background-position: -1152px 0; transform: translateY(5px) scaleX(var(--flip-x, 1)); }
+  100% { background-position: -1152px 0; transform: translateY(5px) scaleX(var(--flip-x, 1)); }
 }
 
 @keyframes playSprite9 {
