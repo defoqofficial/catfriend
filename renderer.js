@@ -1939,7 +1939,7 @@ class Bird {
     this.debugSpan.style.fontSize = '12px';
     this.debugSpan.style.background = 'white';
     this.debugSpan.style.whiteSpace = 'nowrap';
-    this.debugSpan.style.top = '-20px';
+    this.debugSpan.style.top = '70px';
     this.debugSpan.style.left = '0';
     this.debugSpan.style.zIndex = '9999';
     
@@ -2074,7 +2074,10 @@ class Bird {
       // Check for danger (cats nearby)
       // Update debug info
       try {
-          this.debugSpan.innerText = `${this.state} | x:${Math.round(this.x)} y:${Math.round(this.y)} | wait:${this.stateWaitFrames} plat:${this.platformTime||0}`;
+          const info = `${this.state} | x:${Math.round(this.x)} y:${Math.round(this.y)} | wait:${this.stateWaitFrames} plat:${this.platformTime||0}`;
+          this.debugSpan.innerText = info;
+          const fs = require('fs');
+          fs.writeFileSync('bird_debug.txt', info);
       } catch (e) {}
 
       if (this.state !== 'FLYING' && this.state !== 'ESCAPING') {
