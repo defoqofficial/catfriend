@@ -1,3 +1,7 @@
+:root {
+  --cat-scale: 1;
+}
+
 body, html {
   margin: 0;
   padding: 0;
@@ -16,6 +20,8 @@ body, html {
   align-items: center;
   visibility: hidden;
   z-index: 100;
+  transform: scale(var(--cat-scale));
+  transform-origin: bottom center;
 }
 
 .cat-container.visible {

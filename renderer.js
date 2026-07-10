@@ -74,6 +74,9 @@ const distractingKeywords = ['youtube', 'discord', 'twitter', 'reddit', 'twitch'
 const screenW = window.screen.availWidth;
 const screenH = window.screen.availHeight;
 
+const catScale = screenW / 3440;
+document.documentElement.style.setProperty('--cat-scale', catScale);
+
 let mouseX = 0, mouseY = 0;
 let lastMouseX = 0, lastMouseY = 0;
 let mouseIdleFrames = 0;
