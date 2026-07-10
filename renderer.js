@@ -1197,7 +1197,7 @@ class Cat {
           if (this.isAutonomous) {
               const validPlatforms = platforms.filter(p => {
                   if (p.hwnd === this.currentPlatform.hwnd || p.hwnd === -1 || String(p.hwnd).startsWith('line-')) return false;
-                  const px = p.x + p.w / 2;
+                  const px = Math.max(p.x, Math.min(cx, p.x + p.w));
                   return Math.hypot(px - cx, p.y - cy) < 600; // Limit jumps to 600px radius
               });
               if (validPlatforms.length > 0 && Math.random() < 0.7) {
@@ -1217,7 +1217,7 @@ class Cat {
           let best = null;
           let bestDist = Infinity;
           for (let p of platforms) {
-            const px = p.x + p.w / 2;
+            const px = Math.max(p.x, Math.min(mouseX + this.getEffectiveTargetOffset(), p.x + p.w));
             const py = p.y;
             const dist = Math.hypot(px - (mouseX + this.getEffectiveTargetOffset()), py - mouseY);
             if (dist < bestDist) {
@@ -1282,7 +1282,7 @@ class Cat {
                } else if (rand < 0.6) {
                    const validPlatforms = platforms.filter(p => {
                        if (p.hwnd === this.currentPlatform.hwnd || p.hwnd === -1 || String(p.hwnd).startsWith('line-')) return false;
-                       const px = p.x + p.w / 2;
+                       const px = Math.max(p.x, Math.min(cx, p.x + p.w));
                        return Math.hypot(px - cx, p.y - cy) < 800; // Limit jumps to 800px radius
                    });
                    if (validPlatforms.length > 0) {
@@ -1384,7 +1384,7 @@ class Cat {
           let best = null;
           let bestDist = Infinity;
           for (let p of platforms) {
-            const px = p.x + p.w / 2;
+            const px = Math.max(p.x, Math.min(mouseX + this.getEffectiveTargetOffset(), p.x + p.w));
             const py = p.y;
             const dist = Math.hypot(px - (mouseX + this.getEffectiveTargetOffset()), py - mouseY);
             if (dist < bestDist) {
