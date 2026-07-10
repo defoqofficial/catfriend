@@ -1335,15 +1335,12 @@ class Cat {
           this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
           this.setCatClass('running');
           
-          const speedRatio = Math.max(0.3, Math.abs(this.walkVx) / 8);
-          this.sprite.style.animationDuration = `${0.5 / speedRatio}s`;
         } else {
           this.walkVx += (0 - this.walkVx) * 0.2; // Smooth deceleration
           this.x += this.walkVx;
           
           if (Math.abs(this.walkVx) < 0.5) {
               this.walkVx = 0;
-              this.sprite.style.animationDuration = '0.5s';
               this.sprite.style.setProperty('--flip-x', Math.sign(actualDx) || 1);
               
               if (mouseIdleFrames > 600) {
@@ -1357,8 +1354,6 @@ class Cat {
               }
           } else {
               this.setCatClass('running');
-              const speedRatio = Math.max(0.3, Math.abs(this.walkVx) / 8);
-              this.sprite.style.animationDuration = `${0.5 / speedRatio}s`;
           }
         }
         
@@ -1434,15 +1429,12 @@ class Cat {
            this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
            this.setCatClass('running');
            
-           const speedRatio = Math.max(0.3, Math.abs(this.walkVx) / 4);
-           this.sprite.style.animationDuration = `${0.6 / speedRatio}s`;
        } else {
            this.walkVx += (0 - this.walkVx) * 0.2;
            this.x += this.walkVx;
            
            if (Math.abs(this.walkVx) < 0.5) {
                this.walkVx = 0;
-               this.sprite.style.animationDuration = '0.8s';
                this.state = 'ON_PLATFORM';
                this.setCatClass('idle');
                this.autonomousStateTimeout = 60 + Math.random() * 120;
@@ -1518,8 +1510,6 @@ class Cat {
                      this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
                      this.setCatClass('running');
                      
-                     const speedRatio = Math.max(0.3, Math.abs(this.walkVx) / 8);
-                     this.sprite.style.animationDuration = `${0.5 / speedRatio}s`;
                  }
              } else {
                  // Different platform, jump to the bird's platform!
