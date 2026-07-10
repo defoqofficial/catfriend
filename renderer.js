@@ -2499,6 +2499,9 @@ function update() {
           const angle = Math.atan2(dy, dx) * 180 / Math.PI;
           bug.style.transform = `translate(-50%, -50%) rotate(${angle + 90}deg)`;
       } else if (activeBreakType === 'long') {
+          document.getElementById('bug-fly').style.display = 'none';
+          
+          // Spawn birds during long break
           if (now > nextCatSpawnTime && longBreakCats.length < 20) {
               nextCatSpawnTime = now + 1000;
               const newCat = new Cat('breakcat_' + Date.now(), false, true);
