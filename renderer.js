@@ -2004,6 +2004,7 @@ class Bird {
                   this.state = 'LANDING';
               }
           }
+      }
       else if (this.state === 'LANDING') {
           const dx = this.targetX - this.x;
           const dy = this.targetY - this.y;
