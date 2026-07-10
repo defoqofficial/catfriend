@@ -2608,6 +2608,8 @@ function update() {
               }
           });
           longBreakCats = [];
+          
+          [...birds].forEach(b => b.destroy());
       }
       
       if (activeBreakType === 'short' && breakEndTime !== 0) {
