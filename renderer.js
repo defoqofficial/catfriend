@@ -1933,7 +1933,18 @@ class Bird {
     this.sprite = document.createElement('div');
     this.sprite.className = 'bird-sprite bird-fly';
     
+    this.debugSpan = document.createElement('div');
+    this.debugSpan.style.position = 'absolute';
+    this.debugSpan.style.color = 'red';
+    this.debugSpan.style.fontSize = '12px';
+    this.debugSpan.style.background = 'white';
+    this.debugSpan.style.whiteSpace = 'nowrap';
+    this.debugSpan.style.top = '-20px';
+    this.debugSpan.style.left = '0';
+    this.debugSpan.style.zIndex = '9999';
+    
     this.container.appendChild(this.sprite);
+    this.container.appendChild(this.debugSpan);
     document.body.appendChild(this.container);
     
     this.setFlip(this.vx);
@@ -2061,6 +2072,11 @@ class Bird {
       }
       
       // Check for danger (cats nearby)
+      // Update debug info
+      try {
+          this.debugSpan.innerText = `${this.state} | x:${Math.round(this.x)} y:${Math.round(this.y)} | wait:${this.stateWaitFrames} plat:${this.platformTime||0}`;
+      } catch (e) {}
+
       if (this.state !== 'FLYING' && this.state !== 'ESCAPING') {
           const scale = screenW / 3440;
           const dangerDist = 400 * scale; // Fly away if they get closer than this
