@@ -77,6 +77,13 @@ body, html {
   margin-top: 14px;
 }
 
+.cat-container.bound .cat-sprite {
+  background-image: url('cat_animation/PNG/JumpCattttt.png');
+  background-size: 1664px 128px;
+  animation: playSprite13 0.6s steps(13) infinite;
+  margin-top: 14px;
+}
+
 .cat-container.walk .cat-sprite {
   background-image: url('cat_animation/PNG/RunCatttt.png');
   background-size: 896px 128px;

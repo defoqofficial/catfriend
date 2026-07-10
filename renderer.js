@@ -755,7 +755,7 @@ class Cat {
             } else {
                 this.currentPlatform = currentSplit;
                 this.y = this.currentPlatform.y - 128;
-                this.setCatClass('running');
+                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
             }
         }
         
@@ -771,7 +771,7 @@ class Cat {
                 this.y = hit.y - 128;
                 this.currentPlatform = hit;
                 this.pounceVy = 0;
-                this.setCatClass('running');
+                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
             }
         }
         
@@ -808,7 +808,7 @@ class Cat {
             this.y = hit.y - 128;
             this.currentPlatform = hit;
             this.state = 'CHASE_BUG';
-            this.setCatClass('running');
+            this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
         }
         
         if (this.x < 0) {
@@ -838,7 +838,7 @@ class Cat {
             } else {
                 this.currentPlatform = currentSplit;
                 this.y = this.currentPlatform.y - 128;
-                this.setCatClass('running');
+                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
             }
         }
         
@@ -854,7 +854,7 @@ class Cat {
                 this.y = hit.y - 128;
                 this.currentPlatform = hit;
                 this.pounceVy = 0;
-                this.setCatClass('running');
+                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
             }
         }
         
@@ -913,7 +913,7 @@ class Cat {
             } else {
                 this.currentPlatform = currentSplit;
                 this.y = this.currentPlatform.y - 128;
-                this.setCatClass('running');
+                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
             }
         }
         
@@ -929,7 +929,7 @@ class Cat {
                 this.y = hit.y - 128;
                 this.currentPlatform = hit;
                 this.pounceVy = 0;
-                this.setCatClass('running');
+                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
             }
         }
         
@@ -977,7 +977,7 @@ class Cat {
             this.y = this.vandalTarget.y - 128;
             this.state = 'FETCH_GIFT_PLACE';
             this.vandalFrames = 0;
-            this.setCatClass('running');
+            this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
             // Choose a random spot on the window to place it
             this.pounceVx = Math.random() > 0.5 ? 8 : -8;
             this.dropTargetX = this.vandalTarget.x + 50 + Math.random() * (this.vandalTarget.w - 100);
@@ -1052,7 +1052,7 @@ class Cat {
        
        if (this.currentPlatform) {
           this.x += dir * 12;
-          this.setCatClass('running');
+          this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
           
           if (cx < this.currentPlatform.x || cx > this.currentPlatform.x + this.currentPlatform.w) {
              this.currentPlatform = null;
@@ -1293,12 +1293,12 @@ class Cat {
                    } else {
                        this.autonomousTargetX = this.currentPlatform.x + 30 + Math.random() * (this.currentPlatform.w - 60);
                        this.state = 'AUTONOMOUS_WALK';
-                       this.setCatClass('running');
+                       this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
                    }
                } else {
                   this.autonomousTargetX = this.currentPlatform.x + 30 + Math.random() * (this.currentPlatform.w - 60);
                   this.state = 'AUTONOMOUS_WALK';
-                  this.setCatClass('running');
+                  this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
                }
             }
             return;
@@ -1333,7 +1333,7 @@ class Cat {
           
           this.x += this.walkVx;
           this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
-          this.setCatClass('running');
+          this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
           
         } else {
           this.walkVx += (0 - this.walkVx) * 0.2; // Smooth deceleration
@@ -1353,7 +1353,7 @@ class Cat {
                 this.setCatClass('idle');
               }
           } else {
-              this.setCatClass('running');
+              this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
           }
         }
         
@@ -1375,7 +1375,7 @@ class Cat {
                 if (targetGift) {
                     this.vandalTarget = targetGift;
                     this.state = 'SWAT_GIFT_WALK';
-                    this.setCatClass('running');
+                    this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
                     this.stateWaitFrames = 0;
                     return;
                 }
@@ -1427,7 +1427,7 @@ class Cat {
            this.walkVx += (desiredVx - this.walkVx) * 0.1;
            this.x += this.walkVx;
            this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
-           this.setCatClass('running');
+           this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
            
        } else {
            this.walkVx += (0 - this.walkVx) * 0.2;
@@ -1439,7 +1439,7 @@ class Cat {
                this.setCatClass('idle');
                this.autonomousStateTimeout = 60 + Math.random() * 120;
            } else {
-               this.setCatClass('running');
+               this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
            }
        }
     }
@@ -1508,7 +1508,7 @@ class Cat {
                      this.x = newX;
                      
                      this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
-                     this.setCatClass('running');
+                     this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
                      
                  }
              } else {
@@ -1597,7 +1597,7 @@ class Cat {
                this.speak(swatPhrases[Math.floor(Math.random() * swatPhrases.length)]);
                
                this.state = 'FLEE_CRIME';
-               this.setCatClass('running');
+               this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
                this.stateWaitFrames = 0;
                this.sprite.style.setProperty('--flip-x', -dir);
            } else {
@@ -1714,7 +1714,7 @@ class Cat {
             this.sprite.style.setProperty('--flip-x', dx > 0 ? 1 : -1);
             this.huntTarget = null;
         } else {
-            this.setCatClass('running');
+            this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : 'running');
             this.sprite.style.setProperty('--flip-x', dx > 0 ? 1 : -1);
             this.x += (dx > 0 ? 6 : -6);
             
