@@ -2167,7 +2167,23 @@ function update() {
       } else if (activeBreakType === 'long') {
           if (now > nextCatSpawnTime && longBreakCats.length < 20) {
               nextCatSpawnTime = now + 1000;
-              const newCat = new Cat('breakcat_' + Date.now(), false, true);              
+              const newCat = new Cat('breakcat_' + Date.now(), false, true);
+              
+              // Apply random styling
+              const colors = [
+                  'none', // orange
+                  'hue-rotate(20deg) saturate(50%) brightness(70%)', // brown
+                  'grayscale(100%) brightness(30%)', // black
+                  'grayscale(100%) brightness(80%)', // grey
+                  'grayscale(100%) brightness(150%)' // white
+              ];
+              const chosenFilter = colors[Math.floor(Math.random() * colors.length)];
+              newCat.sprite.style.filter = chosenFilter === 'none' ? '' : `${chosenFilter} drop-shadow(0px 4px 6px rgba(0,0,0,0.5))`;
+              
+              const scale = 0.7 + Math.random() * 0.6;
+              newCat.container.style.transform = `scale(${scale})`;
+              newCat.container.style.transformOrigin = 'bottom center';
+              
               newCat.show();
               
               const customPlatforms = loadCustomPlatforms();
@@ -2472,7 +2488,13 @@ document.getElementById('menu-customize-break').addEventListener('click', (e) =>
   document.body.classList.add('drawing-mode');
   ipcRenderer.send('set-ignore-mouse-events', false);
   document.getElementById('save-break-btn').style.display = 'block';
+  document.getElementById('clear-break-btn').style.display = 'block';
   updateGlobalHover();
+});
+
+document.getElementById('clear-break-btn').addEventListener('click', () => {
+  virtualShelves = [];
+  document.querySelectorAll('.break-custom-line').forEach(el => el.remove());
 });
 
 document.getElementById('save-break-btn').addEventListener('click', () => {
@@ -2485,6 +2507,7 @@ document.getElementById('save-break-btn').addEventListener('click', () => {
   isDrawingMode = false;
   document.body.classList.remove('drawing-mode');
   document.getElementById('save-break-btn').style.display = 'none';
+  document.getElementById('clear-break-btn').style.display = 'none';
   
   const env = document.getElementById('nature-environment');
   env.innerHTML = '';
