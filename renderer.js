@@ -481,15 +481,14 @@ class Cat {
       this.isVisible = true;
     }
   }
-  
   update(platforms) {
     if (!this.isVisible) return;
     
     // Check for nearby birds
-    const scale = screenW / 3440;
+    const scale = screenW / 3440;    // Hunt birds in long break
     if (birds.length > 0 && this.state !== 'HUNTING_BIRD' && this.state !== 'JUMPING' && this.state !== 'FALLING') {
-        const targetBird = birds.find(b => Math.hypot(b.x - this.x, b.y - this.y) < 1000 * scale && b.state !== 'ESCAPING' && b.state !== 'FLYING');
-        if (targetBird && Math.random() < 0.1) {
+        const targetBird = birds.find(b => Math.hypot(b.x - this.x, b.y - this.y) < 2000 * scale && b.state === 'SITTING');
+        if (targetBird && Math.random() < 0.05) {
             this.state = 'HUNTING_BIRD';
             this.huntingBirdTarget = targetBird;
             this.setCatClass('pounce');
@@ -1484,13 +1483,13 @@ class Cat {
        }
      }
      else if (this.state === 'HUNTING_BIRD') {
-         if (!this.huntingBirdTarget || birds.indexOf(this.huntingBirdTarget) === -1 || this.huntingBirdTarget.state === 'ESCAPING') {
-             this.state = 'EDGE_WAIT';
-             this.stateWaitFrames = 0;
-             this.huntingBirdTarget = null;
-             this.setCatClass('idle');
-             return;
-         }
+        if (!this.huntingBirdTarget || birds.indexOf(this.huntingBirdTarget) === -1 || this.huntingBirdTarget.state !== 'SITTING') {
+            this.state = 'EDGE_WAIT';
+            this.stateWaitFrames = 0;
+            this.huntingBirdTarget = null;
+            this.setCatClass('idle');
+            return;
+        };
          
          const targetX = this.huntingBirdTarget.x;
          const cx = this.x + 64;
@@ -1971,9 +1970,12 @@ class Bird {
           this.x += this.vx;
           this.y += Math.sin(this.stateWaitFrames * 0.05) * 1;
           
-          if (this.x < -200 || this.x > screenW + 200) {
-              this.destroy();
-              return;
+          if (this.x < 50 && this.vx < 0) {
+              this.vx *= -1;
+              this.setFlip(this.vx);
+          } else if (this.x > screenW - 50 && this.vx > 0) {
+              this.vx *= -1;
+              this.setFlip(this.vx);
           }
           
           // Randomly decide to land if high enough and over a valid platform
@@ -1982,7 +1984,7 @@ class Bird {
               
               // Filter safe platforms (no cat within 600px scaled)
               const scale = screenW / 3440;
-              const safeDist = 600 * scale;
+              const safeDist = 500 * scale;
               const safePlatforms = validPlatforms.filter(p => {
                   const px = p.x + p.w / 2;
                   const allCats = [...cats, ...longBreakCats];
@@ -2020,11 +2022,11 @@ class Bird {
       else if (this.state === 'SITTING') {
           this.platformTime = (this.platformTime || 0) + 1;
           if (this.platformTime > 600) { // Fly away after ~10 seconds
-              this.state = 'ESCAPING';
+              this.state = 'FLYING';
               this.setAnim('bird-fly');
-              this.vx = Math.random() < 0.5 ? 6 : -6;
-              this.vy = -4;
+              this.vx = Math.random() < 0.5 ? 3 : -3;
               this.setFlip(this.vx);
+              this.stateWaitFrames = 0;
           } else if (this.stateWaitFrames > 120 && Math.random() < 0.02) {
               this.state = 'WALKING';
               this.setAnim('bird-walk');
@@ -2036,11 +2038,11 @@ class Bird {
       else if (this.state === 'WALKING') {
           this.platformTime = (this.platformTime || 0) + 1;
           if (this.platformTime > 600) {
-              this.state = 'ESCAPING';
+              this.state = 'FLYING';
               this.setAnim('bird-fly');
-              this.vx = Math.random() < 0.5 ? 6 : -6;
-              this.vy = -4;
+              this.vx = Math.random() < 0.5 ? 3 : -3;
               this.setFlip(this.vx);
+              this.stateWaitFrames = 0;
           } else {
               const dx = this.targetX - this.x;
               this.setFlip(dx);
@@ -2055,15 +2057,6 @@ class Bird {
               }
           }
       }
-      else if (this.state === 'ESCAPING') {
-          this.x += this.vx;
-          this.y += this.vy;
-          
-          if (this.x < -200 || this.x > screenW + 200 || this.y < -200) {
-              this.destroy();
-              return;
-          }
-      }
       
       // Check for danger (cats nearby)
       // Update debug info
@@ -2074,7 +2067,7 @@ class Bird {
           fs.writeFileSync('bird_debug.txt', info);
       } catch (e) {}
 
-      if (this.state !== 'FLYING' && this.state !== 'ESCAPING') {
+      if (this.state !== 'FLYING') {
           const scale = screenW / 3440;
           const dangerDist = 400 * scale; // Fly away if they get closer than this
           const allCats = [...cats, ...longBreakCats];
@@ -2088,11 +2081,12 @@ class Bird {
           });
           
           if (dangerCat) {
-              this.state = 'ESCAPING';
+              this.state = 'FLYING';
               this.setAnim('bird-fly');
-              this.vx = this.x > dangerCat.x ? 6 : -6;
-              this.vy = -4; // Fly up and away
+              this.vx = this.x > dangerCat.x ? 3 : -3;
               this.setFlip(this.vx);
+              this.stateWaitFrames = 0; // Reset wait frames so it doesn't instantly land again
+              this.y -= 30; // Quick vertical boost to look like it jumped away
           }
       }
       
