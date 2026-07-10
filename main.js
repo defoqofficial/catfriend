@@ -143,3 +143,7 @@ ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
     mainWindow.setIgnoreMouseEvents(ignore, options);
   }
 });
+
+ipcMain.on('log', (event, data) => {
+    require('fs').writeFileSync('C:\\Users\\grask\\Documents\\cat_friend\\debug_dom.txt', data);
+});

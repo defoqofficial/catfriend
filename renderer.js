@@ -2704,6 +2704,27 @@ function update() {
   cats.forEach(cat => cat.update(platforms));
   longBreakCats.forEach(cat => cat.update(platforms));
   birds.forEach(bird => bird.update(platforms));
+  if (Math.random() < 0.05) { // Roughly every few seconds at 60fps
+      try {
+          const domState = {
+              birds: birds.map(b => ({x: b.x, y: b.y, state: b.state})),
+              birdElements: Array.from(document.querySelectorAll('.bird-container')).map(el => ({
+                  left: el.style.left,
+                  top: el.style.top,
+                  display: getComputedStyle(el).display,
+                  rect: el.getBoundingClientRect()
+              })),
+              bugFly: document.getElementById('bug-fly') ? {
+                  display: document.getElementById('bug-fly').style.display,
+                  left: document.getElementById('bug-fly').style.left,
+                  top: document.getElementById('bug-fly').style.top,
+                  computedDisplay: getComputedStyle(document.getElementById('bug-fly')).display
+              } : null
+          };
+          ipcRenderer.send('log', JSON.stringify(domState, null, 2));
+      } catch(e) {}
+  }
+  
   requestAnimationFrame(update);
 }
 requestAnimationFrame(update);
