@@ -1485,9 +1485,10 @@ class Cat {
      }
      else if (this.state === 'HUNTING_BIRD') {
          if (!this.huntingBirdTarget || birds.indexOf(this.huntingBirdTarget) === -1 || this.huntingBirdTarget.state === 'ESCAPING') {
-             this.state = 'FALLING';
+             this.state = 'EDGE_WAIT';
+             this.stateWaitFrames = 0;
              this.huntingBirdTarget = null;
-             this.setCatClass('pounce');
+             this.setCatClass('idle');
              return;
          }
          
@@ -1503,7 +1504,17 @@ class Cat {
                  const dir = Math.sign(dx) || 1;
                  if (Math.abs(dx) > 10) {
                      this.walkVx += (8 * dir - this.walkVx) * 0.1;
-                     this.x += this.walkVx;
+                     
+                     let newX = this.x + this.walkVx;
+                     if (newX + 64 < currentSplit.x) {
+                         newX = currentSplit.x - 64;
+                         this.walkVx = 0;
+                     } else if (newX + 64 > currentSplit.x + currentSplit.w) {
+                         newX = currentSplit.x + currentSplit.w - 64;
+                         this.walkVx = 0;
+                     }
+                     this.x = newX;
+                     
                      this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
                      this.setCatClass('running');
                      
@@ -1512,7 +1523,16 @@ class Cat {
                  }
              } else {
                  // Different platform, jump to the bird's platform!
-                 this.startJump(this.huntingBirdTarget.currentPlatform, cx, cy, targetX);
+                 const scale = screenW / 3440;
+                 const dist = Math.hypot(targetX - cx, this.huntingBirdTarget.currentPlatform.y - cy);
+                 if (dist > 800 * scale) {
+                     this.state = 'EDGE_WAIT';
+                     this.stateWaitFrames = 0;
+                     this.huntingBirdTarget = null;
+                     this.setCatClass('idle');
+                 } else {
+                     this.startJump(this.huntingBirdTarget.currentPlatform, cx, cy, targetX);
+                 }
              }
          } else if (!currentSplit) {
              this.state = 'FALLING';
@@ -2338,7 +2358,7 @@ ipcRenderer.on('mouse-position', (event, { x, y }) => {
           last90MinTime = now;
           last30MinTime = now; // Reset the 30min timer so they don't overlap
           upcomingBreakType = 'long';
-          upcomingBreakDuration = 20 * 1000;
+          upcomingBreakDuration = 30 * 1000;
           breakWarningEndTime = now + 3000;
       } else if (now - last30MinTime > 30 * 60 * 1000) {
           last30MinTime = now;
@@ -2741,7 +2761,7 @@ document.getElementById('menu-force-long').addEventListener('click', (e) => {
   document.getElementById('menu-overlay').style.display = 'none';
   
   upcomingBreakType = 'long';
-  upcomingBreakDuration = 20 * 1000; // 20 SECONDS FOR TESTING (Long Break)
+  upcomingBreakDuration = 30 * 1000; // 30 SECONDS FOR TESTING (Long Break)
   breakWarningEndTime = Date.now() + 3000;
   last90MinTime = Date.now();
   last30MinTime = Date.now(); // Reset short break timer as well
