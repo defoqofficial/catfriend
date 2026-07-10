@@ -1486,10 +1486,11 @@ class Cat {
         if (!this.huntingBirdTarget || birds.indexOf(this.huntingBirdTarget) === -1 || this.huntingBirdTarget.state !== 'SITTING') {
             this.state = 'EDGE_WAIT';
             this.stateWaitFrames = 0;
+            this.walkVx = 0; // Stop immediately so we don't slide in the idle frame
             this.huntingBirdTarget = null;
             this.setCatClass('idle');
             return;
-        };
+        }
          
          const targetX = this.huntingBirdTarget.x;
          const cx = this.x + 64;
@@ -1917,7 +1918,7 @@ class Bird {
     this.id = 'bird_' + Date.now() + Math.floor(Math.random() * 1000);
     this.x = Math.random() < 0.5 ? -100 : screenW + 100;
     this.y = 100 + Math.random() * (screenH / 2);
-    this.vx = this.x < 0 ? 2 + Math.random() * 3 : -2 - Math.random() * 3;
+    this.vx = this.x < 0 ? 6 + Math.random() * 3 : -6 - Math.random() * 3;
     this.vy = 0;
     
     this.state = 'FLYING';
@@ -1969,6 +1970,11 @@ class Bird {
       if (this.state === 'FLYING') {
           this.x += this.vx;
           this.y += Math.sin(this.stateWaitFrames * 0.05) * 1;
+          if (this.vy) {
+              this.y += this.vy;
+              this.vy *= 0.92; // Smoothly decay vertical velocity
+              if (Math.abs(this.vy) < 0.1) this.vy = 0;
+          }
           
           if (this.x < 50 && this.vx < 0) {
               this.vx *= -1;
@@ -2024,7 +2030,8 @@ class Bird {
           if (this.platformTime > 600) { // Fly away after ~10 seconds
               this.state = 'FLYING';
               this.setAnim('bird-fly');
-              this.vx = Math.random() < 0.5 ? 3 : -3;
+              this.vx = Math.random() < 0.5 ? 8 : -8;
+              this.vy = -6; // Smooth vertical takeoff
               this.setFlip(this.vx);
               this.stateWaitFrames = 0;
           } else if (this.stateWaitFrames > 120 && Math.random() < 0.02) {
@@ -2040,7 +2047,8 @@ class Bird {
           if (this.platformTime > 600) {
               this.state = 'FLYING';
               this.setAnim('bird-fly');
-              this.vx = Math.random() < 0.5 ? 3 : -3;
+              this.vx = Math.random() < 0.5 ? 8 : -8;
+              this.vy = -6; // Smooth vertical takeoff
               this.setFlip(this.vx);
               this.stateWaitFrames = 0;
           } else {
@@ -2083,10 +2091,10 @@ class Bird {
           if (dangerCat) {
               this.state = 'FLYING';
               this.setAnim('bird-fly');
-              this.vx = this.x > dangerCat.x ? 3 : -3;
+              this.vx = this.x > dangerCat.x ? 8 : -8;
+              this.vy = -8; // Smooth jump away!
               this.setFlip(this.vx);
               this.stateWaitFrames = 0; // Reset wait frames so it doesn't instantly land again
-              this.y -= 30; // Quick vertical boost to look like it jumped away
           }
       }
       
