@@ -2273,14 +2273,14 @@ function update() {
               
               // Apply random styling
               const colors = [
-                  'none', // orange
-                  'hue-rotate(20deg) saturate(50%) brightness(70%)', // brown
-                  'grayscale(100%) brightness(30%)', // black
-                  'grayscale(100%) brightness(80%)', // grey
-                  'grayscale(100%) brightness(150%)' // white
+                  'brightness(200%) sepia(100%) saturate(300%) hue-rotate(340deg)', // orange
+                  'brightness(150%) sepia(100%) saturate(200%) hue-rotate(350deg)', // brown
+                  'none', // black (base color)
+                  'grayscale(100%) brightness(200%)', // grey
+                  'grayscale(100%) brightness(500%)' // white
               ];
               const chosenFilter = colors[Math.floor(Math.random() * colors.length)];
-              newCat.sprite.style.filter = chosenFilter === 'none' ? '' : `${chosenFilter} drop-shadow(0px 4px 6px rgba(0,0,0,0.5))`;
+              newCat.sprite.style.filter = chosenFilter === 'none' ? 'drop-shadow(0px 4px 6px rgba(0,0,0,0.5))' : `${chosenFilter} drop-shadow(0px 4px 6px rgba(0,0,0,0.5))`;
               
               const scale = 0.7 + Math.random() * 0.6;
               newCat.container.style.transform = `scale(${scale})`;
