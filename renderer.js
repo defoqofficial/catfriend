@@ -1960,20 +1960,14 @@ class Bird {
   }
   
   update(platforms) {
-    if (!this.isVisible) return;
-    
-    // Check for nearby birds
-    const scale = screenW / 3440;
-    if (birds.length > 0 && this.state !== 'HUNTING_BIRD' && this.state !== 'JUMPING' && this.state !== 'FALLING') {
-        const targetBird = birds.find(b => Math.hypot(b.x - this.x, b.y - this.y) < 1000 * scale && b.state !== 'ESCAPING' && b.state !== 'FLYING');
-        if (targetBird && Math.random() < 0.1) {
-            this.state = 'HUNTING_BIRD';
-            this.huntingBirdTarget = targetBird;
-            this.setCatClass('pounce');
-        }
-    }
-    
-    if (this.state === 'FALLING') {
+      if (isNaN(this.x) || isNaN(this.y)) {
+          this.destroy();
+          return;
+      }
+      
+      this.stateWaitFrames++;
+      
+      if (this.state === 'FLYING') {
           this.x += this.vx;
           this.y += Math.sin(this.stateWaitFrames * 0.05) * 1;
           
