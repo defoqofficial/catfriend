@@ -2151,9 +2151,31 @@ ipcRenderer.on('mouse-position', (event, { x, y }) => {
           cats.forEach(c => c.isTrueBreakMode = true);
       } else if (activeBreakType === 'long') {
           buildNatureEnvironment();
-          nextCatSpawnTime = now + 1000; // spawn first cat immediately
+          nextCatSpawnTime = now + 3000; // wait 3s before first spawn
           
           cats.forEach(c => c.isAutonomous = true);
+          
+          if (cats.length > 0) {
+              const originalCat = cats[0];
+              const customPlatforms = virtualShelves.length > 0 ? virtualShelves : loadCustomPlatforms();
+              
+              if (customPlatforms.length > 0) {
+                  let bestDist = Infinity;
+                  let bestPlatform = null;
+                  for (const p of customPlatforms) {
+                      const px = p.x + p.w / 2;
+                      const dist = Math.hypot(px - (originalCat.x + 64), p.y - (originalCat.y + 128));
+                      if (dist < bestDist) {
+                          bestDist = dist;
+                          bestPlatform = p;
+                      }
+                  }
+                  if (bestPlatform) {
+                      const targetX = bestPlatform.x + 30 + Math.random() * (bestPlatform.w - 60);
+                      originalCat.startJump(bestPlatform, originalCat.x + 64, originalCat.y + 128, targetX);
+                  }
+              }
+          }
       }
   }
   
