@@ -54,6 +54,10 @@ body, html {
   to { background-position: -896px 0; }
 }
 
+@keyframes playSprite5 {
+  to { background-position: -640px 0; } /* 5 frames * 128px */
+}
+
 @keyframes playSprite9 {
   to { background-position: -1152px 0; } /* 9 frames * 128px */
 }
@@ -69,14 +73,14 @@ body, html {
 .cat-container.running .cat-sprite {
   background-image: url('cat_animation/PNG/RunCatttt.png');
   background-size: 896px 128px;
-  animation: playSprite 0.5s steps(7) infinite;
+  animation: playSprite5 0.35s steps(5) infinite;
   margin-top: 14px;
 }
 
 .cat-container.walk .cat-sprite {
   background-image: url('cat_animation/PNG/RunCatttt.png');
   background-size: 896px 128px;
-  animation: playSprite 0.9s steps(7) infinite;
+  animation: playSprite5 0.65s steps(5) infinite;
   margin-top: 14px;
 }
 
