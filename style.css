@@ -641,3 +641,66 @@ body.hide-shelves .shelf-visual {
   from { background-position: 0px 0px; }
   to { background-position: -384px 0px; }
 }
+
+/* Mimmie Animations */
+.cat-container.main-cat .cat-sprite {
+  background-image: url('assets/mimmie_spritesheet.png?v=4') !important;
+  background-size: 8192px 128px !important; 
+}
+
+@keyframes playMimmieIdle {
+  0% { background-position: 0px 0; }
+  100% { background-position: -2304px 0; }
+}
+.cat-container.main-cat.idle .cat-sprite {
+  animation: playMimmieIdle 1.8s steps(18) infinite !important;
+}
+
+@keyframes playMimmieRun {
+  0% { background-position: -2304px 0; }
+  100% { background-position: -3584px 0; }
+}
+.cat-container.main-cat.running .cat-sprite {
+  animation: playMimmieRun 0.7s steps(10) infinite !important;
+}
+
+@keyframes playMimmieSleep {
+  0% { background-position: -3584px 0; }
+  100% { background-position: -4736px 0; }
+}
+.cat-container.main-cat.sleep .cat-sprite {
+  animation: playMimmieSleep 2.0s steps(9) infinite !important;
+}
+
+@keyframes playMimmieSit {
+  0% { background-position: -4736px 0; }
+  100% { background-position: -5760px 0; }
+}
+.cat-container.main-cat.sit .cat-sprite {
+  animation: playMimmieSit 1.6s steps(8) infinite !important;
+}
+
+@keyframes playMimmieJump {
+  0% { background-position: -5760px 0; }
+  100% { background-position: -7168px 0; }
+}
+.cat-container.main-cat.bound .cat-sprite {
+  animation: playMimmieRun 0.7s steps(10) infinite !important;
+}
+.cat-container.main-cat.attack .cat-sprite {
+  animation: playMimmieJump 0.8s steps(11) infinite !important;
+}
+
+@keyframes playMimmieWalk {
+  0% { background-position: -7168px 0; }
+  100% { background-position: -8192px 0; }
+}
+.cat-container.main-cat.walk .cat-sprite {
+  animation: playMimmieWalk 1.0s steps(8) infinite !important;
+}
+
+.cat-container.main-cat.prepare-pounce .cat-sprite,
+.cat-container.main-cat.hide-edge .cat-sprite,
+.cat-container.main-cat.pounce .cat-sprite {
+  animation: none !important;
+}
