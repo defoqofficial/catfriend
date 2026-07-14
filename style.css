@@ -692,15 +692,51 @@ body.hide-shelves .shelf-visual {
 }
 
 @keyframes playMimmieWalk {
-  0% { background-position: -7168px 0; }
-  100% { background-position: -8192px 0; }
+  0% { background-position: -2304px 0; }
+  100% { background-position: -3584px 0; }
 }
 .cat-container.main-cat.walk .cat-sprite {
-  animation: playMimmieWalk 1.0s steps(8) infinite !important;
+  animation: playMimmieWalk 1.0s steps(10) infinite !important;
 }
 
 .cat-container.main-cat.prepare-pounce .cat-sprite,
 .cat-container.main-cat.hide-edge .cat-sprite,
 .cat-container.main-cat.pounce .cat-sprite {
   animation: none !important;
+}
+
+/* Pixel Loading Bar */
+.pixel-loading-text {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  font-family: monospace;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+  display: none;
+  z-index: 100;
+  text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+}
+.pixel-loading-bar {
+  position: absolute;
+  top: -20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64px;
+  height: 8px;
+  background-color: rgba(0,0,0,0.5);
+  border: 2px solid #fff;
+  image-rendering: pixelated;
+  display: none;
+  z-index: 100;
+  box-shadow: 0px 4px 0px rgba(0,0,0,0.5);
+}
+.pixel-loading-fill {
+  height: 100%;
+  width: 0%;
+  background-color: #ffffff;
+  transition: width 0.1s linear;
 }

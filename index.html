@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Cat Friend</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 <body>
   <div id="screen-dimmer"></div>
@@ -23,6 +23,7 @@
     <div class="menu-item" id="menu-friend">Friend Mode</div>
     <div class="menu-item" id="menu-twin">Twin Mode</div>
     <div class="menu-item" id="menu-gift">Bring Gift</div>
+    <div class="menu-item" id="menu-phone">Send to Phone</div>
     <div class="menu-item" id="menu-force-eye">Force Eye Rest</div>
     <div class="menu-item" id="menu-force-short">Force Short Break</div>
     <div class="menu-item" id="menu-force-long">Force Long Break</div>
@@ -39,9 +40,22 @@
     <div class="menu-item" id="menu-timer-long" style="pointer-events: none; opacity: 0.7; font-size: 14px; padding: 2px 8px;">Long Break: --</div>
   </div>
   <div id="cursor-warning"></div>
+  <div id="qr-modal" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #2b2b2b; padding: 20px; border: 2px solid white; border-radius: 8px; z-index: 10001; text-align: center; color: white; font-family: 'VT323', monospace;">
+    <h2>Connect to Phone</h2>
+    <p id="ip-address-text" style="font-size: 20px; font-weight: bold; margin: 10px 0; padding: 5px; background: #1a1a1a; border-radius: 4px;">IP: Loading...</p>
+    <canvas id="qr-canvas" style="margin-top: 10px;"></canvas>
+    <p style="margin-top: 10px;">Type the IP into the Android App<br>OR scan the QR code!</p>
+    <button id="close-qr-btn" class="ui-button" style="margin-top: 10px;">Close</button>
+  </div>
+  <div id="global-loading-container" style="display: none; position: absolute; pointer-events: none; z-index: 10000; transform: translate(-50%, 20px);">
+    <div id="global-loading-text" class="pixel-loading-text" style="display: block; position: relative; top: 0; left: 0; transform: none; text-align: center; margin-bottom: 4px;">LOADING...</div>
+    <div id="global-loading-bar" class="pixel-loading-bar" style="display: block; position: relative; top: 0; left: 0; transform: none; margin: 0 auto;">
+      <div id="global-loading-fill" class="pixel-loading-fill"></div>
+    </div>
+  </div>
     <button id="save-break-btn" class="ui-button" style="display: none; position: absolute; top: 10px; right: 10px; z-index: 100;">Save & Exit Customization</button>
     <button id="clear-break-btn" class="ui-button" style="display: none; position: absolute; top: 10px; right: 230px; z-index: 100;">Clear All</button>
 
-  <script src="renderer.js"></script>
+  <script src="renderer.js?v=2"></script>
 </body>
 </html>

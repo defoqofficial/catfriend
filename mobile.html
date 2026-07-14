@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cat Friend Mobile</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #2b2b2b;
+      color: white;
+      font-family: 'VT323', monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    #mobile-cat-container {
+      position: relative;
+      width: 128px;
+      height: 128px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transform: scale(2);
+      margin-bottom: 20px;
+    }
+    
+    .status-text {
+      font-size: 24px;
+      text-align: center;
+      margin-top: 40px;
+      opacity: 0.7;
+    }
+    
+    #waiting-msg {
+      display: block;
+    }
+    
+    #break-msg {
+      display: none;
+      color: #ff6b6b;
+      font-size: 32px;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="mobile-cat-container" class="cat-container main-cat sleep visible">
+    <div class="cat-sprite"></div>
+  </div>
+  
+  <div id="ui-container">
+    <div id="waiting-msg" class="status-text">
+      Connected! Waiting for a break...
+    </div>
+    <div id="break-msg" class="status-text">
+      Time for a break!
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const isFloating = urlParams.get('floating') === '1';
+
+    if (isFloating) {
+        document.body.style.backgroundColor = 'transparent';
+        document.getElementById('ui-container').style.display = 'none';
+        document.getElementById('mobile-cat-container').style.transform = 'scale(1)'; // Standard size for floating
+        document.getElementById('mobile-cat-container').style.margin = '0';
+    }
+    const catContainer = document.getElementById('mobile-cat-container');
+    const waitingMsg = document.getElementById('waiting-msg');
+    const breakMsg = document.getElementById('break-msg');
+    
+    const evtSource = new EventSource('/events');
+    
+    evtSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        
+        if (data.type === 'break-started') {
+            catContainer.className = 'cat-container main-cat running visible';
+            waitingMsg.style.display = 'none';
+            breakMsg.style.display = 'block';
+            breakMsg.textContent = data.breakType === 'long' ? 'Time for a Long Break!' : 'Time for a Short Break!';
+        } 
+        else if (data.type === 'break-ended') {
+            catContainer.className = 'cat-container main-cat sleep visible';
+            waitingMsg.style.display = 'block';
+            breakMsg.style.display = 'none';
+        }
+    };
+    
+    evtSource.onerror = function() {
+        waitingMsg.textContent = 'Disconnected. Reconnecting...';
+        catContainer.style.display = 'none';
+        breakMsg.style.display = 'none';
+    };
+    
+    // Make the cat react when you tap it!
+    catContainer.addEventListener('click', () => {
+        const oldClass = catContainer.className;
+        catContainer.className = 'cat-container main-cat attack visible';
+        setTimeout(() => {
+            catContainer.className = oldClass;
+        }, 1000);
+    });
+  </script>
+</body>
+</html>

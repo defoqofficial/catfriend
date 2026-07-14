@@ -79,6 +79,87 @@ document.documentElement.style.setProperty('--cat-scale', catScale);
 
 let mouseX = 0, mouseY = 0;
 let lastMouseX = 0, lastMouseY = 0;
+const { ipcRenderer } = require('electron');
+const fs = require('fs');
+const path = require('path');
+
+function loadCustomPlatforms() {
+    let rawData = [];
+    try {
+        const data = fs.readFileSync('custom_break_platforms.json', 'utf8');
+        const parsed = JSON.parse(data);
+        let refW = 3440;
+        let refH = 1440;
+        
+        if (Array.isArray(parsed)) {
+            rawData = parsed;
+        } else if (parsed && parsed.platforms) {
+            rawData = parsed.platforms;
+            refW = parsed.resolution.w;
+            refH = parsed.resolution.h;
+        }
+        
+        // If resolution is exactly the same, no scaling needed
+        if (refW === screenW && refH === screenH) {
+            return rawData;
+        }
+        
+        // Simulate CSS object-fit: cover behavior
+        const imageW = 3840; // bg_image_1.png dimensions
+        const imageH = 1920;
+        
+        const refScale = Math.max(refW / imageW, refH / imageH);
+        const refOffsetX = (refW - imageW * refScale) / 2;
+        const refOffsetY = (refH - imageH * refScale) / 2;
+        
+        const currentScale = Math.max(screenW / imageW, screenH / imageH);
+        const currentOffsetX = (screenW - imageW * currentScale) / 2;
+        const currentOffsetY = (screenH - imageH * currentScale) / 2;
+        
+        return rawData.map(p => {
+            // Un-scale from the reference screen back to the raw image pixels
+            const imgX = (p.x - refOffsetX) / refScale;
+            const imgY = (p.y - refOffsetY) / refScale;
+            const imgW = p.w / refScale;
+            
+            // Re-scale from the raw image pixels to the current screen
+            return {
+                hwnd: p.hwnd,
+                title: p.title,
+                x: (imgX * currentScale) + currentOffsetX,
+                y: (imgY * currentScale) + currentOffsetY,
+                w: imgW * currentScale,
+                h: p.h
+            };
+        });
+    } catch (e) {
+        return [];
+    }
+}
+
+let openWindows = [];
+let previousOpenWindows = [];
+let virtualShelves = [];
+let isDrawingMode = false;
+let currentDrawElement = null;
+let drawStartX = 0;
+let drawStartY = 0;
+
+let isCustomizingBreak = false;
+let normalShelvesBackup = [];
+let isErasing = false;
+
+// Productivity Guard: Distracting Keywords
+const distractingKeywords = ['youtube', 'discord', 'twitter', 'reddit', 'twitch'];
+
+const screenW = window.screen.availWidth;
+const screenH = window.screen.availHeight;
+
+const catScale = screenW / 3440;
+document.documentElement.style.setProperty('--cat-scale', catScale);
+
+let mouseX = 0, mouseY = 0;
+let lastMouseX = 0, lastMouseY = 0;
 let mouseIdleFrames = 0;
 
 let activeContextCat = null;
@@ -87,6 +168,27 @@ const contextMenu = document.getElementById('cat-context-menu');
 let last20MinTime = Date.now();
 let last30MinTime = Date.now();
 let last90MinTime = Date.now();
+
+window.setCatMobileState = function(stateStr, isFlipped) {
+    if (cats.length > 0) {
+        let cat = cats[0];
+        // Force ANDROID_MODE in case the initial typeof Android check failed
+        if (cat.state !== 'ANDROID_MODE') {
+            cat.state = 'ANDROID_MODE';
+            cat.x = 0;
+            cat.y = 0;
+            cat.container.style.left = `0px`;
+            cat.container.style.top = `0px`;
+        }
+        
+        cat.setCatClass(stateStr);
+        cat.sprite.style.setProperty('--flip-x', isFlipped ? -1 : 1);
+        if (stateStr !== 'idle') {
+            mouseIdleFrames = 0; // Prevent global idle timer from incrementing if we're moving
+        }
+    }
+};
+
 let breakEndTime = 0;
 let breakWarningEndTime = 0;
 let upcomingBreakDuration = 0;
@@ -303,7 +405,8 @@ let hoveringGifts = 0;
 
 // Track if ANY cat or gift is hovering so we know whether to ignore mouse events
 function updateGlobalHover() {
-  if (isDrawingMode || contextMenu.classList.contains('visible') || draggedGift || breakEndTime > Date.now()) {
+  const isQrModalVisible = document.getElementById('qr-modal') && document.getElementById('qr-modal').style.display === 'block';
+  if (isDrawingMode || contextMenu.classList.contains('visible') || draggedGift || breakEndTime > Date.now() || isQrModalVisible) {
       ipcRenderer.send('set-ignore-mouse-events', false);
       return;
   }
@@ -371,7 +474,7 @@ class Cat {
   getEffectiveTargetOffset() {
     const activeCats = cats.filter(c => !c.isLeaving && c.state !== 'FORCED_SIT' && c.state !== 'FORCED_SLEEP');
     if (activeCats.length <= 1) {
-      return 0; // If only one cat is awake, it targets the mouse directly
+      return 0;
     }
     return this.isTwin ? 60 : -60;
   }
@@ -393,7 +496,7 @@ class Cat {
       if (this.state === 'FORCED_SLEEP' || this.state === 'FORCED_SIT') {
          this.state = 'WAKING_UP';
          this.setCatClass('pounce');
-         this.setSpriteBg(`-256px 0px`);
+         this.setSpriteBg('-256px 0px');
          this.stateWaitFrames = 0;
       }
     });
@@ -435,7 +538,43 @@ class Cat {
       
       contextMenu.classList.add('visible');
       document.getElementById('menu-overlay').style.display = 'block';
-      ipcRenderer.send('set-ignore-mouse-events', false);
+      if (typeof ipcRenderer !== 'undefined' && ipcRenderer.send) {
+          ipcRenderer.send('set-ignore-mouse-events', false);
+      }
+    });
+
+    let touchTimeout;
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    this.sprite.addEventListener('touchstart', (e) => {
+      if (!this.isVisible || isDrawingMode) return;
+      touchStartX = e.touches[0].screenX;
+      touchStartY = e.touches[0].screenY;
+      touchTimeout = setTimeout(() => {
+         e.preventDefault();
+         const contextEvent = new MouseEvent('contextmenu', {
+             bubbles: true,
+             cancelable: true,
+             clientX: e.touches[0].clientX,
+             clientY: e.touches[0].clientY
+         });
+         this.sprite.dispatchEvent(contextEvent);
+      }, 500);
+    }, { passive: false });
+
+    this.sprite.addEventListener('touchmove', (e) => {
+      if (Math.abs(e.touches[0].screenX - touchStartX) > 10 || Math.abs(e.touches[0].screenY - touchStartY) > 10) {
+          clearTimeout(touchTimeout);
+      }
+    }, { passive: false });
+
+    this.sprite.addEventListener('touchend', (e) => {
+      clearTimeout(touchTimeout);
+    });
+
+    this.sprite.addEventListener('touchcancel', (e) => {
+      clearTimeout(touchTimeout);
     });
   }
   
@@ -517,18 +656,46 @@ class Cat {
 
   show() {
     if (!this.isVisible) {
-      this.x = mouseX ? Math.max(100, Math.min(screenW - 100, mouseX)) : screenW / 2;
-      this.y = screenH + 10;
-      this.pounceVy = -20;
-      this.pounceVx = 0;
-      this.state = 'RESET_JUMP';
-      this.setCatClass('pounce');
+      if (typeof Android !== 'undefined') {
+          this.x = 0;
+          this.y = 0;
+          this.state = 'ANDROID_MODE';
+          this.setCatClass('idle');
+          this.container.style.left = `0px`;
+          this.container.style.top = `0px`;
+      } else {
+          this.x = mouseX ? Math.max(100, Math.min(screenW - 100, mouseX)) : screenW / 2;
+          this.y = screenH + 10;
+          this.pounceVy = -20;
+          this.pounceVx = 0;
+          this.state = 'RESET_JUMP';
+          this.setCatClass('pounce');
+      }
       this.stateWaitFrames = 0;
       this.isVisible = true;
     }
   }
   update(platforms) {
     if (!this.isVisible) return;
+
+    if (this.state === 'ANDROID_MODE') {
+        this.x = 0;
+        this.y = 0;
+        this.container.style.left = `0px`;
+        this.container.style.top = `0px`;
+        return; // Physics are bypassed entirely on Android
+    }
+
+    if (this.state === 'PRE_BREAK') {
+       const now = Date.now();
+       const timeLeft = breakWarningEndTime - now;
+       if (timeLeft > 0) {
+           this.setCatClass('sit');
+       } else {
+           this.state = 'ON_PLATFORM';
+       }
+       return;
+    }
     
     // Check for nearby birds
     const scale = screenW / 3440;    // Hunt birds in long break
@@ -582,13 +749,50 @@ class Cat {
     // Hover logic
     const cx = this.x + 64; 
     const cy = this.y + 128; 
-    const distToMouse = Math.hypot(mouseX - cx, mouseY - cy);
-    const isNowHovering = distToMouse < 64;
+    let topBound = cy - 96;
+    if (this.state.includes('SLEEP')) topBound = cy - 48;
+    else if (this.state.includes('SIT')) topBound = cy - 72;
+    const isNowHovering = Math.abs(mouseX - cx) < 48 && mouseY > topBound && mouseY < cy + 16;
     if (this.isHovering !== isNowHovering) {
       this.isHovering = isNowHovering;
       updateGlobalHover();
     }
     
+    // Break Mode Overarching Meta-State Logic
+    if (this.isTrueBreakMode) {
+      const remainingMs = breakEndTime - Date.now();
+      
+      if (remainingMs > 0) {
+        const mins = Math.floor(remainingMs / 60000);
+        const secs = Math.floor((remainingMs % 60000) / 1000);
+        this.balloon.textContent = `Break! ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        this.balloon.className = 'cat-speech-balloon';
+        if (this.state === 'BREAK_MODE_PRE_JUMP') {
+            this.balloon.style.display = 'block';
+        } else {
+            this.balloon.style.display = 'none';
+        }
+        
+        this.container.classList.remove('hunting');
+        
+        if (['ON_PLATFORM', 'EDGE_WAIT', 'SITTING', 'SLEEPING', 'WAKING_UP'].includes(this.state)) {
+           this.state = 'BREAK_MODE_PRE_JUMP';
+           this.setCatClass('pounce');
+           this.stateWaitFrames = 0;
+        }
+      }
+    } else {
+        if (this.balloon.className.includes('thought-bubble')) {
+            this.balloon.style.display = 'none';
+            this.balloon.className = 'cat-speech-balloon';
+            this.container.classList.remove('hunting');
+            if (this.state === 'HUNTING_MOUSE') {
+                this.state = 'FALLING';
+                this.setCatClass('pounce');
+            }
+        }
+    }
+
     // Platform move check
     if (this.currentPlatform && this.currentPlatform.hwnd && this.currentPlatform.hwnd !== -1 && !String(this.currentPlatform.hwnd).startsWith('shelf-')) {
       if (['ON_PLATFORM', 'EDGE_WAIT', 'LANDING', 'SLEEPING', 'SITTING', 'WAKING_UP', 'FORCED_SLEEP', 'FORCED_SIT', 'IDLE'].includes(this.state)) {
@@ -801,7 +1005,7 @@ class Cat {
             } else {
                 this.currentPlatform = currentSplit;
                 this.y = this.currentPlatform.y - 128;
-                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+                this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
             }
         }
         
@@ -817,7 +1021,7 @@ class Cat {
                 this.y = hit.y - 128;
                 this.currentPlatform = hit;
                 this.pounceVy = 0;
-                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+                this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
             }
         }
         
@@ -854,7 +1058,7 @@ class Cat {
             this.y = hit.y - 128;
             this.currentPlatform = hit;
             this.state = 'CHASE_BUG';
-            this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+            this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
         }
         
         if (this.x < 0) {
@@ -884,7 +1088,7 @@ class Cat {
             } else {
                 this.currentPlatform = currentSplit;
                 this.y = this.currentPlatform.y - 128;
-                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+                this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
             }
         }
         
@@ -900,7 +1104,7 @@ class Cat {
                 this.y = hit.y - 128;
                 this.currentPlatform = hit;
                 this.pounceVy = 0;
-                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+                this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
             }
         }
         
@@ -959,7 +1163,7 @@ class Cat {
             } else {
                 this.currentPlatform = currentSplit;
                 this.y = this.currentPlatform.y - 128;
-                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+                this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
             }
         }
         
@@ -975,7 +1179,7 @@ class Cat {
                 this.y = hit.y - 128;
                 this.currentPlatform = hit;
                 this.pounceVy = 0;
-                this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+                this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
             }
         }
         
@@ -1023,7 +1227,7 @@ class Cat {
             this.y = this.vandalTarget.y - 128;
             this.state = 'FETCH_GIFT_PLACE';
             this.vandalFrames = 0;
-            this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+            this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
             // Choose a random spot on the window to place it
             this.pounceVx = Math.random() > 0.5 ? 8 : -8;
             this.dropTargetX = this.vandalTarget.x + 50 + Math.random() * (this.vandalTarget.w - 100);
@@ -1098,7 +1302,7 @@ class Cat {
        
        if (this.currentPlatform) {
           this.x += dir * 12;
-          this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+          this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
           
           if (cx < this.currentPlatform.x || cx > this.currentPlatform.x + this.currentPlatform.w) {
              this.currentPlatform = null;
@@ -1339,12 +1543,12 @@ class Cat {
                    } else {
                        this.autonomousTargetX = this.currentPlatform.x + 30 + Math.random() * (this.currentPlatform.w - 60);
                        this.state = 'AUTONOMOUS_WALK';
-                       this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+                       this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
                    }
                } else {
                   this.autonomousTargetX = this.currentPlatform.x + 30 + Math.random() * (this.currentPlatform.w - 60);
                   this.state = 'AUTONOMOUS_WALK';
-                  this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+                  this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
                }
             }
             return;
@@ -1379,7 +1583,7 @@ class Cat {
           
           this.x += this.walkVx;
           this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
-          this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+          this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
           
         } else {
           this.walkVx += (0 - this.walkVx) * 0.2; // Smooth deceleration
@@ -1399,7 +1603,7 @@ class Cat {
                 this.setCatClass('idle');
               }
           } else {
-              this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+              this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
           }
         }
         
@@ -1421,7 +1625,7 @@ class Cat {
                 if (targetGift) {
                     this.vandalTarget = targetGift;
                     this.state = 'SWAT_GIFT_WALK';
-                    this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+                    this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
                     this.stateWaitFrames = 0;
                     return;
                 }
@@ -1473,7 +1677,7 @@ class Cat {
            this.walkVx += (desiredVx - this.walkVx) * 0.1;
            this.x += this.walkVx;
            this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
-           this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+           this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
            
        } else {
            this.walkVx += (0 - this.walkVx) * 0.2;
@@ -1485,7 +1689,7 @@ class Cat {
                this.setCatClass('idle');
                this.autonomousStateTimeout = 60 + Math.random() * 120;
            } else {
-               this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+               this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
            }
        }
     }
@@ -1556,7 +1760,7 @@ class Cat {
                      this.x = newX;
                      
                      this.sprite.style.setProperty('--flip-x', this.walkVx > 0 ? 1 : -1);
-                     this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+                     this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
                      
                  }
              } else {
@@ -1645,7 +1849,7 @@ class Cat {
                this.speak(swatPhrases[Math.floor(Math.random() * swatPhrases.length)]);
                
                this.state = 'FLEE_CRIME';
-               this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+               this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
                this.stateWaitFrames = 0;
                this.sprite.style.setProperty('--flip-x', -dir);
            } else {
@@ -1769,7 +1973,7 @@ class Cat {
             this.sprite.style.setProperty('--flip-x', dx > 0 ? 1 : -1);
             this.huntTarget = null;
         } else {
-            this.setCatClass(Math.abs(this.walkVx) > 5.5 ? 'bound' : (Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk'));
+            this.setCatClass(Math.abs(this.walkVx) > 4.5 ? 'running' : 'walk');
             this.sprite.style.setProperty('--flip-x', dx > 0 ? 1 : -1);
             this.x += (dx > 0 ? 6 : -6);
             
@@ -2455,12 +2659,14 @@ ipcRenderer.on('mouse-position', (event, { x, y }) => {
           last30MinTime = now; // Reset the 30min timer so they don't overlap
           upcomingBreakType = 'long';
           upcomingBreakDuration = 30 * 1000;
-          breakWarningEndTime = now + 3000;
+          breakWarningEndTime = now + 10000;
+          cats.forEach(c => { c.state = 'PRE_BREAK'; c.loadingDuration = 10000; });
       } else if (now - last30MinTime > 30 * 60 * 1000) {
           last30MinTime = now;
           upcomingBreakType = 'short';
           upcomingBreakDuration = 3.5 * 60 * 1000;
-          breakWarningEndTime = now + 3000;
+          breakWarningEndTime = now + 5000;
+          cats.forEach(c => { c.state = 'PRE_BREAK'; c.loadingDuration = 5000; });
       }
   }
   
@@ -2469,11 +2675,27 @@ ipcRenderer.on('mouse-position', (event, { x, y }) => {
       warningEl.style.display = 'block';
       warningEl.style.left = `${mouseX}px`;
       warningEl.style.top = `${mouseY}px`;
+      
+      const loadingContainer = document.getElementById('global-loading-container');
+      loadingContainer.style.display = 'block';
+      loadingContainer.style.left = `${mouseX}px`;
+      loadingContainer.style.top = `${mouseY}px`;
+      
+      const timeLeft = breakWarningEndTime - now;
+      // We assume loadingDuration is based on the upcomingBreakType: 5000 for short, 10000 for long
+      const loadingDur = upcomingBreakType === 'long' ? 10000 : 5000;
+      const progress = Math.max(0, Math.min(100, (1 - (timeLeft / loadingDur)) * 100));
+      
+      document.getElementById('global-loading-fill').style.width = `${progress}%`;
+      document.getElementById('global-loading-text').textContent = upcomingBreakType === 'long' ? 'LONG BREAK LOADING...' : 'SHORT BREAK LOADING...';
+      
   } else if (breakWarningEndTime > 0) {
       breakWarningEndTime = 0;
       document.getElementById('cursor-warning').style.display = 'none';
+      document.getElementById('global-loading-container').style.display = 'none';
       breakEndTime = now + upcomingBreakDuration;
       activeBreakType = upcomingBreakType;
+      ipcRenderer.send('broadcast-mobile-event', { type: 'break-started', breakType: activeBreakType });
       
       if (activeBreakType === 'short') {
           cats.forEach(c => c.isTrueBreakMode = true);
@@ -2599,7 +2821,7 @@ function update() {
           
           // Spawn birds during long break
           if (now > nextCatSpawnTime && longBreakCats.length < 20) {
-              nextCatSpawnTime = now + 1000;
+              nextCatSpawnTime = now + (upcomingBreakDuration / 20);
               const newCat = new Cat('breakcat_' + Date.now(), false, true);
               
               // Apply random styling
@@ -2871,7 +3093,8 @@ document.getElementById('menu-force-short').addEventListener('click', (e) => {
   
   upcomingBreakType = 'short';
   upcomingBreakDuration = 10 * 1000; // 10 SECONDS FOR TESTING
-  breakWarningEndTime = Date.now() + 3000;
+  breakWarningEndTime = Date.now() + 5000;
+  cats.forEach(c => { c.state = 'PRE_BREAK'; c.loadingDuration = 5000; });
   last30MinTime = Date.now();
   
   updateGlobalHover();
@@ -2884,7 +3107,8 @@ document.getElementById('menu-force-long').addEventListener('click', (e) => {
   
   upcomingBreakType = 'long';
   upcomingBreakDuration = 30 * 1000; // 30 SECONDS FOR TESTING (Long Break)
-  breakWarningEndTime = Date.now() + 3000;
+  breakWarningEndTime = Date.now() + 10000;
+  cats.forEach(c => { c.state = 'PRE_BREAK'; c.loadingDuration = 10000; });
   last90MinTime = Date.now();
   last30MinTime = Date.now(); // Reset short break timer as well
   
@@ -2997,3 +3221,59 @@ document.getElementById('save-break-btn').addEventListener('click', () => {
   }
   updateGlobalHover();
 });
+
+
+let qrcode = null;
+if (typeof require !== 'undefined') {
+    try {
+        qrcode = require('qrcode');
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+document.getElementById('menu-phone').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    contextMenu.classList.remove('visible');
+    document.getElementById('menu-overlay').style.display = 'none';
+    updateGlobalHover();
+    
+    const ip = await ipcRenderer.invoke('get-local-ip');
+    const url = `http://${ip}:3000`;
+    const ipTextElem = document.getElementById('ip-address-text');
+    if (ipTextElem) ipTextElem.innerText = `IP: ${ip}`;
+    
+    const canvas = document.getElementById('qr-canvas');
+    if (qrcode) {
+        qrcode.toCanvas(canvas, url, { width: 200 }, function (error) {
+            if (error) console.error(error);
+            document.getElementById('qr-modal').style.display = 'block';
+            ipcRenderer.send('set-ignore-mouse-events', false); // Intercept clicks so user can close it
+        });
+    } else {
+        document.getElementById('qr-modal').style.display = 'block';
+        if (typeof ipcRenderer !== 'undefined') ipcRenderer.send('set-ignore-mouse-events', false);
+    }
+});
+
+document.getElementById('close-qr-btn').addEventListener('click', () => {
+    document.getElementById('qr-modal').style.display = 'none';
+    updateGlobalHover();
+});
+
+// --- Mobile Support ---
+if (window.Android) {
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.attributeName === 'class') {
+                const isVisible = contextMenu.classList.contains('visible');
+                if (isVisible) {
+                    window.Android.resizeWindow(300, 450);
+                } else {
+                    window.Android.resizeWindow(128, 128);
+                }
+            }
+        });
+    });
+    observer.observe(contextMenu, { attributes: true });
+}

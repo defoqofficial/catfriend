@@ -147,3 +147,64 @@ ipcMain.on('set-ignore-mouse-events', (event, ignore, options) => {
 ipcMain.on('log', (event, data) => {
     require('fs').writeFileSync('C:\\Users\\grask\\Documents\\cat_friend\\debug_dom.txt', data);
 });
+
+const express = require('express');
+const os = require('os');
+const appExpress = express();
+let sseClients = [];
+
+appExpress.use(express.static(__dirname, { index: false }));
+
+appExpress.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'mobile.html'));
+});
+
+appExpress.get('/events', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    sseClients.push(res);
+
+    req.on('close', () => {
+        sseClients = sseClients.filter(client => client !== res);
+    });
+});
+
+appExpress.listen(3000, '0.0.0.0', () => {
+    console.log('Mobile server listening on port 3000');
+});
+
+ipcMain.on('broadcast-mobile-event', (event, data) => {
+    sseClients.forEach(client => {
+        client.write(`data: ${JSON.stringify(data)}\n\n`);
+    });
+});
+
+ipcMain.handle('get-local-ip', () => {
+    const interfaces = os.networkInterfaces();
+    let bestIp = null;
+    let fallbackIp = null;
+
+    for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                if (!fallbackIp) fallbackIp = iface.address; // Save first found as fallback
+                
+                // Prioritize standard local network ranges
+                if (iface.address.startsWith('192.168.') || 
+                    iface.address.startsWith('10.')) {
+                    bestIp = iface.address;
+                } else if (iface.address.startsWith('172.')) {
+                    const secondOctet = parseInt(iface.address.split('.')[1]);
+                    if (secondOctet >= 16 && secondOctet <= 31) {
+                        bestIp = iface.address;
+                    }
+                }
+            }
+        }
+    }
+    
+    return bestIp || fallbackIp || '127.0.0.1';
+});
